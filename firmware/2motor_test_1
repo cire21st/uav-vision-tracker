@@ -1,3 +1,4 @@
+//모터 2개 구동. 동시 구동 안됨. 회전 중 추가 입력 가능
 const int MOTOR1_EN  = 2;
 const int MOTOR1_STP = 3;
 const int MOTOR1_DIR = 4;
