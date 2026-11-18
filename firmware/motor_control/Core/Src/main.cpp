@@ -1,33 +1,217 @@
 #include <Arduino.h>
-
+#include <stdio.h>
+#include <string.h>
 #include "config.h"
 #include "motor.h"
 #include "can_comm.h"
+#include "manual.h"
+#include "pc.h"
+
+enum ControlMode {
+    IDLE,
+    PC,
+    MANUAL,
+    AUTO
+};
+
+ControlMode mode = IDLE;
+
+bool armed = false;
+bool stop_pending = true;
+
+unsigned long last_rx = 0;
+unsigned long last_stop_try = 0;
+
+int prev_x = 0;
+int prev_y = 0;
+
+// Stop Request
+void request_stop() {
+    armed = false;
+    stop_pending = true;
+    last_stop_try = millis() - 50UL;
+}
+
+// Stop Control
+void service_stop() {
+    if (stop_pending && millis() - last_stop_try >= 50) {
+        last_stop_try = millis();
+        stop_pending = !motor_stop_all();
+    }
+}
+
+// Control Mode Change
+void set_mode(ControlMode new_mode) {
+    if (mode == new_mode) return;
+
+    request_stop();
+    mode = new_mode;
+
+    switch (mode) {
+        case PC:
+            Serial.println("Mode: PC");
+            break;
+
+        case MANUAL:
+            Serial.println("Mode: MANUAL");
+            break;
+
+        case AUTO:
+            Serial.println("Mode: AUTO");
+            break;
+
+        case IDLE:
+            Serial.println("Mode: IDLE");
+            break;
+    }
+}
+
+// Control Command
+void handle_command(ControlMode new_mode, int x, int y) {
+    last_rx = millis();
+
+    set_mode(new_mode);
+
+    if (stop_pending) return;
+    if (mode == IDLE || mode == AUTO) return;
+
+    // Neutral Position Check
+    if (!armed) {
+        bool neutral = (mode == PC && x == 'x') ||
+                       (mode == MANUAL && x == 0 && y == 0);
+
+        if (neutral) {
+            armed = true;
+            prev_x = x;
+            prev_y = y;
+        }
+
+        return;
+    }
+
+    // Skip Identical Commands
+    if (x == prev_x && y == prev_y) return;
+
+    bool success = false;
+
+    switch (mode) {
+        case PC:
+            success = pc_control((char)x);
+            break;
+
+        case MANUAL:
+            success = manual_control(x, y);
+            break;
+
+        default:
+            return;
+    }
+
+    if (success) {
+        prev_x = x;
+        prev_y = y;
+    } else {
+        request_stop();
+    }
+}
+
+// Serial Data Parsing
+void process_command(char* data) {
+    if (strncmp(data, "P,", 2) == 0 &&
+        strlen(data) == 3) {
+
+        char key = data[2];
+
+        if (strchr("wasdx", key)) {
+            handle_command(PC, key, 0);
+        }
+    }
+
+    else if (strncmp(data, "M,", 2) == 0) {
+        long x, y;
+        char extra;
+
+        if (sscanf(data + 2, "%ld,%ld%c",
+                   &x, &y, &extra) == 2) {
+
+            if (x < -JOYSTICK_MAX || x > JOYSTICK_MAX ||
+                y < -JOYSTICK_MAX || y > JOYSTICK_MAX) {
+                return;
+            }
+
+            if (abs(x) <= JOYSTICK_DEADZONE) x = 0;
+            if (abs(y) <= JOYSTICK_DEADZONE) y = 0;
+
+            handle_command(MANUAL, x, y);
+        }
+    }
+
+    else if (strcmp(data, "A") == 0) {
+        handle_command(AUTO, 0, 0);
+    }
+
+    else if (strcmp(data, "I") == 0) {
+        handle_command(IDLE, 0, 0);
+    }
+}
+
+// Serial Reception
+void serial_receive() {
+    static char buffer[32];
+    static uint8_t index = 0;
+    static bool overflow = false;
+
+    while (Serial.available() > 0) {
+        char c = Serial.read();
+
+        if (c == '\n') {
+            buffer[index] = '\0';
+
+            if (!overflow) {
+                process_command(buffer);
+            }
+
+            index = 0;
+            overflow = false;
+        }
+
+        else if (c != '\r' && !overflow) {
+            if (index < sizeof(buffer) - 1) {
+                buffer[index++] = c;
+            } else {
+                overflow = true;
+            }
+        }
+    }
+}
 
 void setup() {
     Serial.begin(115200);
 
-    // CAN 초기화
     if (!can_init()) {
-        Serial.println("CAN init failed");
-        return;
+        Serial.println("CAN Init Failed");
+
+        while (1) {
+            delay(1000);
+        }
     }
 
-    Serial.println("CAN ready");
+    Serial.println("CAN Init Success");
 
     delay(2000);
 
-    // 각 모터에 속도 명령 전송
-    bool motor1_ok = motor_set_speed(MOTOR1_CAN_ID, TEST_RPM);
-    Serial.println(motor1_ok
-        ? "Motor 01 command sent"
-        : "Motor 01 send failed");
-
-    bool motor2_ok = motor_set_speed(MOTOR2_CAN_ID, TEST_RPM);
-    Serial.println(motor2_ok
-        ? "Motor 02 command sent"
-        : "Motor 02 send failed");
+    request_stop();
 }
 
 void loop() {
+    // Communication Timeout
+    if (mode != IDLE && millis() - last_rx >= 300) {
+        set_mode(IDLE);
+    }
+
+    service_stop();
+
+    serial_receive();
+
+    service_stop();
 }
