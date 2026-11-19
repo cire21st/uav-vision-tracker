@@ -1,11 +1,36 @@
-## pan_tilt_tracker (draft)
+## pan_tilt_tracker (초안)
 
-[`pan_tilt_tracker/pan_tilt_tracker.ino`](pan_tilt_tracker/pan_tilt_tracker.ino) receives `<valid,ax,ay>\n` at 115200 baud and drives two hobby servos (pan pin 9, tilt pin 10). `ax`, `ay` are the angle errors from the image center in 0.1° units, right/down positive. Servos hold position when the target is lost or no message arrives for 300 ms.
+[`pan_tilt_tracker/pan_tilt_tracker.ino`](pan_tilt_tracker/pan_tilt_tracker.ino)는 PC(비전)가 보내는 `<valid,ax,ay>\n` 메시지를 115200 baud로 받아서 팬·틸트를 움직이는 아두이노 Uno R3용 스케치입니다.
 
-The sketch is a skeleton with Korean comments: the receive part is complete, and the control owner fills in three callbacks — `onTarget(ax, ay)`, `onLost()`, `onLinkTimeout()`. A two-servo example is included in `onTarget` and can be replaced with existing motor code.
+- `valid`: 1 = 드론 탐지됨, 0 = 못 찾음
+- `ax`, `ay`: 화면 중앙 기준 각도 오차, 단위 0.1° 정수. **오른쪽과 아래쪽이 +** (예: `<1,250,-17>` = 오른쪽 25.0°, 위 1.7°)
+- 드론을 놓쳤거나 300ms 동안 메시지가 없으면 현재 위치에서 멈춥니다.
 
-1. Arduino IDE → Board: **Arduino Uno** → upload the sketch.
-2. Quick test without the PC app: Serial Monitor at 115200, type `<1,200,0>` and send. Pan should move 8° (0.4 × 20°).
-3. If an axis moves the wrong way, flip `PAN_DIR` / `TILT_DIR`. Tune `K` (lower if it oscillates).
-4. Power the servos from an external 5–6 V supply and connect its GND to the Arduino GND.
-5. Close the Serial Monitor before starting the PC app; only one program can open the port.
+이 스케치는 한글 주석이 달린 **뼈대 코드**입니다. 수신부는 완성되어 있고, 제어 담당은 아래 함수 3개만 채우면 됩니다.
+
+| 함수 | 불리는 때 |
+|---|---|
+| `onTarget(ax, ay)` | 드론이 보일 때 (새 메시지마다 1번) |
+| `onLost()` | 드론을 놓쳤을 때 (새 메시지마다 1번) |
+| `onLinkTimeout()` | PC에서 300ms 넘게 메시지가 안 올 때 (끊긴 순간 1번) |
+
+`onTarget()` 안에는 서보 2개(팬 9번, 틸트 10번 핀) 예시가 들어 있고, 기존 모터 코드로 바꿔도 됩니다.
+
+## 사용 방법
+
+1. 아두이노 IDE에서 보드를 **Arduino Uno**로 선택하고 스케치를 업로드합니다. 폴더 이름과 `.ino` 파일 이름이 같아야 열립니다.
+2. PC 프로그램 없이 테스트: 시리얼 모니터를 115200 baud로 열고 `<1,200,0>`을 입력합니다. 팬이 8° 움직이면 정상입니다 (0.4 × 20°).
+3. 반대 방향으로 움직이면 `PAN_DIR` / `TILT_DIR`을 `-1`로 바꿉니다. 떨리면 `K`를 낮추고, 느리면 높입니다.
+4. 모터 전원은 외부 전원(서보는 5–6V)을 쓰고, 외부 전원 GND와 아두이노 GND를 꼭 연결합니다.
+5. PC 프로그램을 실행하기 전에 시리얼 모니터를 닫습니다. COM 포트는 한 프로그램만 열 수 있습니다.
+
+## 실제 모터(MKS SERVO42D)로 바꿀 때
+
+서보 코드는 통신이 되는지 확인하기 위한 예시입니다. 팀 모터는 **MKS SERVO42D**(NEMA17 폐루프 스텝모터)이므로, 실제로 쓸 때는 `onTarget()` 아래 주석을 참고해서 바꿔야 합니다.
+
+- 펄스(STEP/DIR) 방식: [`../2motor_test_2`](../2motor_test_2) 참고
+- CAN 방식: [`../motor_control`](../motor_control) 참고
+
+**핀 충돌 주의:** CAN 모듈(MCP2515)은 10~13번 핀을 씁니다. 서보 예시의 `TILT_PIN = 10`과 겹치므로, CAN 방식을 쓸 때는 서보 예시를 지워야 합니다.
+
+자세한 통신 규약과 제어 가이드는 [`docs/serial-integration-report.md`](../../docs/serial-integration-report.md)를 참고하세요.
