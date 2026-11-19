@@ -1,11 +1,3 @@
-# Arduino Firmware
-
-This area will receive and parse PC messages, compute or apply the agreed control output, and command the pan and tilt motors.
-
-Document the board, required libraries, pin mapping, flashing steps, motor limits, and stop behavior when hardware is chosen. Keep the PC message format aligned with [the integration interface](../../docs/interface.md).
-
-안녕하세요 저는 조완호입니다.
-
 ## pan_tilt_tracker (draft)
 
 [`pan_tilt_tracker/pan_tilt_tracker.ino`](pan_tilt_tracker/pan_tilt_tracker.ino) receives `<valid,ax,ay>\n` at 115200 baud and drives two hobby servos (pan pin 9, tilt pin 10). `ax`, `ay` are the angle errors from the image center in 0.1° units, right/down positive. Servos hold position when the target is lost or no message arrives for 300 ms.
