@@ -1,36 +1,16 @@
-## pan_tilt_tracker (초안)
+## 아두이노 펌웨어 안내
 
-[`pan_tilt_tracker/pan_tilt_tracker.ino`](pan_tilt_tracker/pan_tilt_tracker.ino)는 PC(비전)가 보내는 `<valid,ax,ay>\n` 메시지를 115200 baud로 받아서 팬·틸트를 움직이는 아두이노 Uno R3용 스케치입니다.
+실제로 쓰는 펌웨어는 [`../motor_control`](../motor_control)입니다 (PlatformIO 프로젝트, Arduino Uno + MCP2515 CAN + MKS SERVO42D 2개).
 
-- `valid`: 1 = 드론 탐지됨, 0 = 못 찾음
-- `ax`, `ay`: 화면 중앙 기준 각도 오차, 단위 0.1° 정수. **오른쪽과 아래쪽이 +** (예: `<1,250,-17>` = 오른쪽 25.0°, 위 1.7°)
-- 드론을 놓쳤거나 300ms 동안 메시지가 없으면 현재 위치에서 멈춥니다.
+PC 프로그램 [`../motor_control/Core/Python/control.py`](../motor_control/Core/Python/control.py)가 COM 포트를 열고, F1~F3으로 모드를 바꿔 가며 한 줄씩 보냅니다.
 
-이 스케치는 한글 주석이 달린 **뼈대 코드**입니다. 수신부는 완성되어 있고, 제어 담당은 아래 함수 3개만 채우면 됩니다.
+| 모드 | 메시지 | 뜻 |
+|---|---|---|
+| F1 키보드 | `P,a` / `P,d` / `P,w` / `P,s` / `P,x` | 좌 / 우 / 위 / 아래 / 정지 |
+| F2 조이스틱 | `M,x,y` | 스틱 기울기 (−1200 ~ +1200) |
+| F3 자동 추적 (제안) | `A,dx,dy,flag` | 비전이 계산한 각도 오차 × 10 (오른쪽 +, 위쪽 +), flag 1 = 탐지 |
+| 대기 | `I` | 정지 |
 
-| 함수 | 불리는 때 |
-|---|---|
-| `onTarget(ax, ay)` | 드론이 보일 때 (새 메시지마다 1번) |
-| `onLost()` | 드론을 놓쳤을 때 (새 메시지마다 1번) |
-| `onLinkTimeout()` | PC에서 300ms 넘게 메시지가 안 올 때 (끊긴 순간 1번) |
+자동 추적(F3)은 아직 연결되어 있지 않습니다. 비전 프로그램(`uav-tracker-test`, `main.py --udp`)은 UDP로 값을 보낼 준비가 되어 있고, `control.py`·`main.cpp`·`auto.cpp`에 필요한 변경은 [제안 패치](../../docs/proposals/motor_control_auto_mode.patch)로 정리했습니다. 형식과 그렇게 정한 이유는 [`docs/serial-integration-report.md`](../../docs/serial-integration-report.md)를 참고하세요.
 
-`onTarget()` 안에는 서보 2개(팬 9번, 틸트 10번 핀) 예시가 들어 있고, 기존 모터 코드로 바꿔도 됩니다.
-
-## 사용 방법
-
-1. 아두이노 IDE에서 보드를 **Arduino Uno**로 선택하고 스케치를 업로드합니다. 폴더 이름과 `.ino` 파일 이름이 같아야 열립니다.
-2. PC 프로그램 없이 테스트: 시리얼 모니터를 115200 baud로 열고 `<1,200,0>`을 입력합니다. 팬이 8° 움직이면 정상입니다 (0.4 × 20°).
-3. 반대 방향으로 움직이면 `PAN_DIR` / `TILT_DIR`을 `-1`로 바꿉니다. 떨리면 `K`를 낮추고, 느리면 높입니다.
-4. 모터 전원은 외부 전원(서보는 5–6V)을 쓰고, 외부 전원 GND와 아두이노 GND를 꼭 연결합니다.
-5. PC 프로그램을 실행하기 전에 시리얼 모니터를 닫습니다. COM 포트는 한 프로그램만 열 수 있습니다.
-
-## 실제 모터(MKS SERVO42D)로 바꿀 때
-
-서보 코드는 통신이 되는지 확인하기 위한 예시입니다. 팀 모터는 **MKS SERVO42D**(NEMA17 폐루프 스텝모터)이므로, 실제로 쓸 때는 `onTarget()` 아래 주석을 참고해서 바꿔야 합니다.
-
-- 펄스(STEP/DIR) 방식: [`../2motor_test_2`](../2motor_test_2) 참고
-- CAN 방식: [`../motor_control`](../motor_control) 참고
-
-**핀 충돌 주의:** CAN 모듈(MCP2515)은 10~13번 핀을 씁니다. 서보 예시의 `TILT_PIN = 10`과 겹치므로, CAN 방식을 쓸 때는 서보 예시를 지워야 합니다.
-
-자세한 통신 규약과 제어 가이드는 [`docs/serial-integration-report.md`](../../docs/serial-integration-report.md)를 참고하세요.
+예전에 이 폴더에 있던 `pan_tilt_tracker` 뼈대 스케치는 형식을 `motor_control`로 통일하면서 삭제했습니다. 필요하면 git 기록에서 볼 수 있습니다.
