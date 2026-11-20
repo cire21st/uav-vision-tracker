@@ -6,6 +6,7 @@
 #include "can_comm.h"
 #include "manual.h"
 #include "pc.h"
+#include "shot_motor.h"
 
 enum ControlMode {
     IDLE,
@@ -153,6 +154,12 @@ void process_command(char* data) {
     else if (strcmp(data, "I") == 0) {
         handle_command(IDLE, 0, 0);
     }
+
+    else if (strcmp(data, "X") == 0) {
+        if (mode == PC && armed && !stop_pending) {
+            shot_motor_trigger();
+        }
+    }
 }
 
 // Serial Reception
@@ -186,6 +193,8 @@ void serial_receive() {
 }
 
 void setup() {
+    shot_motor_init();
+
     Serial.begin(115200);
 
     if (!can_init()) {
@@ -208,6 +217,8 @@ void loop() {
     if (mode != IDLE && millis() - last_rx >= 300) {
         set_mode(IDLE);
     }
+    
+    shot_motor_update();
 
     service_stop();
 
