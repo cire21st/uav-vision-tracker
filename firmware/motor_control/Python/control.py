@@ -38,6 +38,7 @@ def get_vision_data():
 
 try:
     while running:
+        shot_requested = False
 
         # Event Processing
         for event in pygame.event.get():
@@ -58,6 +59,10 @@ try:
 
                 elif event.key == pygame.K_ESCAPE:
                     running = False
+
+                elif event.key == pygame.K_SPACE:
+                    if mode == "PC" and pygame.key.get_focused():
+                        shot_requested = True
 
             elif event.type == pygame.JOYDEVICEADDED:
                 if joystick is None:
@@ -112,6 +117,9 @@ try:
 
         # Serial Transmission
         ser.write(f"{data}\n".encode())
+
+        if shot_requested and mode == "PC":
+            ser.write(b"X\n")
 
         # Display
         screen.fill((25, 25, 25))
