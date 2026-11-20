@@ -156,7 +156,7 @@ void process_command(char* data) {
     }
 
     else if (strcmp(data, "X") == 0) {
-        if (mode == PC && armed && !stop_pending) {
+        if ((mode == PC || mode == MANUAL) && armed && !stop_pending) {
             shot_motor_trigger();
         }
     }

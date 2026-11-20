@@ -64,6 +64,14 @@ try:
                     if mode == "PC" and pygame.key.get_focused():
                         shot_requested = True
 
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if (
+                    event.button == 4
+                    and mode == "MANUAL"
+                    and pygame.key.get_focused()
+                ):
+                    shot_requested = True
+
             elif event.type == pygame.JOYDEVICEADDED:
                 if joystick is None:
                     joystick = pygame.joystick.Joystick(
@@ -118,7 +126,7 @@ try:
         # Serial Transmission
         ser.write(f"{data}\n".encode())
 
-        if shot_requested and mode == "PC":
+        if shot_requested and mode in ("PC", "MANUAL"):
             ser.write(b"X\n")
 
         # Display
