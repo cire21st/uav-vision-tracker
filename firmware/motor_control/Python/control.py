@@ -112,7 +112,7 @@ try:
 
                 if joystick is not None:
                     x = round(joystick.get_axis(0) * 1200)
-                    y = round(-joystick.get_axis(1) * 1200)
+                    y = round(joystick.get_axis(1) * 1200)
 
                     data = f"M,{x},{y}"
 
