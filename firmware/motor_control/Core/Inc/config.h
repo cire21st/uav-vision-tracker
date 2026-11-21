@@ -23,3 +23,7 @@
 #define MANUAL_PAN_RPM     120
 #define MANUAL_TILT_RPM    120
 #define MANUAL_TIMEOUT     300
+
+// shot motor 설정
+#define SHOT_MOTOR_PIN 7
+#define SHOT_MOTOR_DURATION_MS 1330UL // 검증 완료
