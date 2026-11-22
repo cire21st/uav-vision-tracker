@@ -14,7 +14,7 @@ if pygame.joystick.get_count() > 0:
     print("Connected:", joystick.get_name())
 
 # Serial Communication
-ser = serial.Serial("COM7", 115200, write_timeout=0.2)
+ser = serial.Serial("COM7", 115200, timeout=0, write_timeout=0.2)
 time.sleep(3)
 
 screen = pygame.display.set_mode((500, 250))
@@ -128,6 +128,11 @@ try:
 
         if shot_requested and mode in ("PC", "MANUAL"):
             ser.write(b"X\n")
+
+        # Show Arduino mode changes and CAN results without blocking pygame.
+        if ser.in_waiting:
+            response = ser.read(ser.in_waiting)
+            print(response.decode("utf-8", errors="replace"), end="", flush=True)
 
         # Display
         screen.fill((25, 25, 25))

@@ -160,6 +160,26 @@ void process_command(char* data) {
             handle_command(MANUAL, x, y);
         }
     }
+    
+    else if (strncmp(data, "A,", 2) == 0) {
+        long dx, dy, flag;
+        char extra;
+
+        if (sscanf(data + 2, "%ld,%ld,%ld%c",
+                &dx, &dy, &flag, &extra) == 3) {
+
+            if (dx < -32768L || dx > 32767L ||
+                dy < -32768L || dy > 32767L) {
+                return;
+            }
+
+            if (flag != 0 && flag != 1) {
+                return;
+            }
+
+            handle_command(AUTO, int16_t(dx), int16_t(dy), int(flag));
+        }
+    }
 
     else if (strcmp(data, "I") == 0) {
         handle_command(IDLE, 0, 0);
