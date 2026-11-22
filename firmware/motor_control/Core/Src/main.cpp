@@ -7,6 +7,7 @@
 #include "manual.h"
 #include "pc.h"
 #include "shot_motor.h"
+#include "auto.h"
 
 enum ControlMode {
     IDLE,
@@ -30,12 +31,12 @@ int prev_y = 0;
 void request_stop() {
     armed = false;
     stop_pending = true;
-    last_stop_try = millis() - 50UL;
+    last_stop_try = millis() - STOP_RETRY_INTERVAL_MS;
 }
 
 // Stop Control
 void service_stop() {
-    if (stop_pending && millis() - last_stop_try >= 50) {
+    if (stop_pending && millis() - last_stop_try >= STOP_RETRY_INTERVAL_MS) {
         last_stop_try = millis();
         stop_pending = !motor_stop_all();
     }
@@ -68,13 +69,21 @@ void set_mode(ControlMode new_mode) {
 }
 
 // Control Command
-void handle_command(ControlMode new_mode, int x, int y) {
+void handle_command(ControlMode new_mode, int x, int y, int flag = 1) {
     last_rx = millis();
 
     set_mode(new_mode);
 
     if (stop_pending) return;
-    if (mode == IDLE || mode == AUTO) return;
+    if (mode == IDLE) return;
+
+    // AUTO는 전달받은 오차값으로 바로 추적
+    if (mode == AUTO) {
+        if (!auto_control(int16_t(x), int16_t(y), flag)) {
+            request_stop();
+        }
+        return;
+    }
 
     // Neutral Position Check
     if (!armed) {
@@ -116,6 +125,11 @@ void handle_command(ControlMode new_mode, int x, int y) {
     }
 }
 
+// Forward pixel errors supplied by the vision integration.
+void handle_vision_error(int16_t dx, int16_t dy, int flag) {
+    handle_command(AUTO, dx, dy, flag);
+}
+
 // Serial Data Parsing
 void process_command(char* data) {
     if (strncmp(data, "P,", 2) == 0 &&
@@ -146,9 +160,25 @@ void process_command(char* data) {
             handle_command(MANUAL, x, y);
         }
     }
+    
+    else if (strncmp(data, "A,", 2) == 0) {
+        long dx, dy, flag;
+        char extra;
 
-    else if (strcmp(data, "A") == 0) {
-        handle_command(AUTO, 0, 0);
+        if (sscanf(data + 2, "%ld,%ld,%ld%c",
+                &dx, &dy, &flag, &extra) == 3) {
+
+            if (dx < -32768L || dx > 32767L ||
+                dy < -32768L || dy > 32767L) {
+                return;
+            }
+
+            if (flag != 0 && flag != 1) {
+                return;
+            }
+
+            handle_command(AUTO, int16_t(dx), int16_t(dy), int(flag));
+        }
     }
 
     else if (strcmp(data, "I") == 0) {
@@ -164,7 +194,7 @@ void process_command(char* data) {
 
 // Serial Reception
 void serial_receive() {
-    static char buffer[32];
+    static char buffer[COMMAND_BUFFER_SIZE];
     static uint8_t index = 0;
     static bool overflow = false;
 
@@ -195,7 +225,7 @@ void serial_receive() {
 void setup() {
     shot_motor_init();
 
-    Serial.begin(115200);
+    Serial.begin(SERIAL_BAUD_RATE);
 
     if (!can_init()) {
         Serial.println("CAN Init Failed");
@@ -207,14 +237,14 @@ void setup() {
 
     Serial.println("CAN Init Success");
 
-    delay(2000);
+    delay(STARTUP_DELAY_MS);
 
     request_stop();
 }
 
 void loop() {
     // Communication Timeout
-    if (mode != IDLE && millis() - last_rx >= 300) {
+    if (mode != IDLE && millis() - last_rx >= CONTROL_TIMEOUT_MS) {
         set_mode(IDLE);
     }
     

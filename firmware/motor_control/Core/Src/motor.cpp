@@ -36,24 +36,24 @@ bool motor_stop(uint16_t can_id) {
 
 // Pan
 bool motor_pan(int rpm) {
-    bool m1 = motor_set_speed(0x01, rpm);
-    bool m2 = motor_set_speed(0x02, rpm);
+    bool m1 = motor_set_speed(MOTOR1_CAN_ID, rpm);
+    bool m2 = motor_set_speed(MOTOR2_CAN_ID, rpm);
 
     return m1 && m2;
 }
 
 // Tilt
 bool motor_tilt(int rpm) {
-    bool m1 = motor_stop(0x01);
-    bool m2 = motor_set_speed(0x02, rpm);
+    bool m1 = motor_stop(MOTOR1_CAN_ID);
+    bool m2 = motor_set_speed(MOTOR2_CAN_ID, rpm);
 
     return m1 && m2;
 }
 
 // Stop
 bool motor_stop_all() {
-    bool m1 = motor_stop(0x01);
-    bool m2 = motor_stop(0x02);
+    bool m1 = motor_stop(MOTOR1_CAN_ID);
+    bool m2 = motor_stop(MOTOR2_CAN_ID);
 
     return m1 && m2;
 }

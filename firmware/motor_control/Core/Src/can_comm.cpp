@@ -11,7 +11,7 @@ MCP_CAN CAN(CAN_CS_PIN);
 bool can_init() {
     SPI.begin();
 
-    byte result = CAN.begin(MCP_ANY, CAN_500KBPS, CAN_OSC);
+    byte result = CAN.begin(MCP_ANY, CAN_BITRATE, CAN_OSC);
 
     Serial.print("CAN init result: ");
     Serial.println(result);
@@ -45,6 +45,25 @@ bool can_send(uint16_t id, uint8_t* data, uint8_t len) {
 
     Serial.print("CAN TX result: ");
     Serial.println(result);
+
+    // Read-only bus diagnostics, limited to once per second on failures.
+    static unsigned long last_diagnostic = 0;
+    const unsigned long now = millis();
+    if (result != CAN_OK && now - last_diagnostic >= 1000UL) {
+        last_diagnostic = now;
+        const byte errors = CAN.getError();
+        const byte tx_errors = CAN.errorCountTX();
+        const byte rx_errors = CAN.errorCountRX();
+
+        Serial.print("CAN diagnostic: id=0x");
+        Serial.print(id, HEX);
+        Serial.print(" EFLG=0x");
+        Serial.print(errors, HEX);
+        Serial.print(" TEC=");
+        Serial.print(tx_errors);
+        Serial.print(" REC=");
+        Serial.println(rx_errors);
+    }
 
     return result == CAN_OK;
 }

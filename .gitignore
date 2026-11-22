@@ -22,6 +22,7 @@ outputs/
 # Arduino build artifacts
 build/
 .pio/
+compile_commands.json
 
 # Temporary files
 *~

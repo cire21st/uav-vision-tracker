@@ -1,6 +1,7 @@
 import serial
 import pygame
 import time
+from vision_input import VisionInput
 
 pygame.init()
 pygame.joystick.init()
@@ -14,7 +15,7 @@ if pygame.joystick.get_count() > 0:
     print("Connected:", joystick.get_name())
 
 # Serial Communication
-ser = serial.Serial("COM9", 115200, write_timeout=0.2)
+ser = serial.Serial("COM7", 115200, timeout=0, write_timeout=0.2)
 time.sleep(3)
 
 screen = pygame.display.set_mode((500, 250))
@@ -23,17 +24,12 @@ font = pygame.font.SysFont("Arial", 24)
 
 mode = "PC"
 running = True
+vision = VisionInput()
 
 
 # Vision Data
 def get_vision_data():
-
-    # TODO: Receive int16 deltaX, deltaY from Vision
-    deltaX = 0
-    deltaY = 0
-    flag = 0
-
-    return int(deltaX), int(deltaY), flag
+    return vision.read()
 
 
 try:
@@ -55,7 +51,12 @@ try:
                     mode = "MANUAL"
 
                 elif event.key == pygame.K_F3:
-                    mode = "AUTO"
+                    try:
+                        vision.start()
+                    except OSError as exc:
+                        print("Vision start failed:", exc, flush=True)
+                    else:
+                        mode = "AUTO"
 
                 elif event.key == pygame.K_ESCAPE:
                     running = False
@@ -88,7 +89,7 @@ try:
         # Default: IDLE
         data = "I"
 
-        if pygame.key.get_focused():
+        if mode == "AUTO" or pygame.key.get_focused():
 
             # PC Mode
             if mode == "PC":
@@ -118,16 +119,21 @@ try:
 
             # Auto Mode
             elif mode == "AUTO":
-
-                deltaX, deltaY, flag = get_vision_data()
-
-                data = f"A,{deltaX},{deltaY},{flag}"
+                result = get_vision_data()
+                if result is not None:
+                    deltaX, deltaY, flag = result
+                    data = f"A,{deltaX},{deltaY},{flag}"
 
         # Serial Transmission
         ser.write(f"{data}\n".encode())
 
         if shot_requested and mode in ("PC", "MANUAL"):
             ser.write(b"X\n")
+
+        # Show Arduino mode changes and CAN results without blocking pygame.
+        if ser.in_waiting:
+            response = ser.read(ser.in_waiting)
+            print(response.decode("utf-8", errors="replace"), end="", flush=True)
 
         # Display
         screen.fill((25, 25, 25))
@@ -155,5 +161,8 @@ finally:
         ser.write(b"I\n")
         ser.flush()
     finally:
-        ser.close()
-        pygame.quit()
+        try:
+            vision.close()
+        finally:
+            ser.close()
+            pygame.quit()
