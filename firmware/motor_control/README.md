@@ -29,3 +29,27 @@ pio run -d firmware/motor_control -t compiledb
 
 경고가 남으면 명령 팔레트에서 `C/C++: Reset IntelliSense Database`를 실행합니다.
 `.vscode` 설정과 `compile_commands.json`은 로컬 환경용이므로 Git에서 제외합니다.
+
+## Vision 없이 오차값으로 모터 테스트
+
+`Core/Src/vision_tracking_test.cpp`는 비전 대신 입력한 오차값으로 기존
+`auto_control(dx, dy, 1)`을 호출하는 별도 펌웨어입니다. 일반 `uno` 빌드에는
+포함되지 않습니다. 저장소 루트에서 테스트 펌웨어를 업로드합니다.
+
+```powershell
+pio run -d firmware/motor_control -e vision_tracking_test -t upload
+pio device monitor -d firmware/motor_control -e vision_tracking_test --filter send_on_enter
+```
+
+장치가 여러 개면 업로드에 `--upload-port COM번호`, 모니터에 `--port COM번호`를
+추가합니다. `control.py` 등 같은 COM 포트를 사용하는 프로그램은 종료합니다.
+모니터에서 `(320,0)`, `(-320,0)`, `(0,180)`, `(0,-180)` 등을 입력하고 Enter를 누릅니다.
+괄호 없는 `320,0`도 가능합니다. `(10,20)`은 현재 데드밴드 10 때문에 가로 명령이 0입니다.
+
+입력한 속도는 다음 명령까지 유지됩니다. 정지는 `stop` 또는 `(0,0)`입니다.
+이 테스트는 방향·속도 계산과 실제 모터 구동을 확인하며, 영상 기반 추적 성능을
+검증하지는 않습니다. 테스트가 끝나면 일반 펌웨어를 다시 업로드합니다.
+
+```powershell
+pio run -d firmware/motor_control -e uno -t upload
+```

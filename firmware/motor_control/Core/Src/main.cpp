@@ -7,6 +7,7 @@
 #include "manual.h"
 #include "pc.h"
 #include "shot_motor.h"
+#include "auto.h"
 
 enum ControlMode {
     IDLE,
@@ -68,13 +69,21 @@ void set_mode(ControlMode new_mode) {
 }
 
 // Control Command
-void handle_command(ControlMode new_mode, int x, int y) {
+void handle_command(ControlMode new_mode, int x, int y, int flag = 1) {
     last_rx = millis();
 
     set_mode(new_mode);
 
     if (stop_pending) return;
-    if (mode == IDLE || mode == AUTO) return;
+    if (mode == IDLE) return;
+
+    // AUTO는 전달받은 오차값으로 바로 추적
+    if (mode == AUTO) {
+        if (!auto_control(int16_t(x), int16_t(y), flag)) {
+            request_stop();
+        }
+        return;
+    }
 
     // Neutral Position Check
     if (!armed) {
@@ -116,6 +125,11 @@ void handle_command(ControlMode new_mode, int x, int y) {
     }
 }
 
+// Forward pixel errors supplied by the vision integration.
+void handle_vision_error(int16_t dx, int16_t dy, int flag) {
+    handle_command(AUTO, dx, dy, flag);
+}
+
 // Serial Data Parsing
 void process_command(char* data) {
     if (strncmp(data, "P,", 2) == 0 &&
@@ -145,10 +159,6 @@ void process_command(char* data) {
 
             handle_command(MANUAL, x, y);
         }
-    }
-
-    else if (strcmp(data, "A") == 0) {
-        handle_command(AUTO, 0, 0);
     }
 
     else if (strcmp(data, "I") == 0) {

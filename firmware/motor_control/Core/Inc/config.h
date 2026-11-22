@@ -36,8 +36,6 @@
 #define MANUAL_TILT_RPM 120
 
 // Image half-dimensions and target deadband for automatic tracking in pixels.
-#define AUTO_HALF_WIDTH  320.0f
-#define AUTO_HALF_HEIGHT 240.0f
 #define AUTO_DEADBAND    10
 
 // Pan, tilt, and motor speed limits for automatic tracking in RPM.
@@ -48,3 +46,16 @@
 // Shot motor output pin and HIGH pulse duration in milliseconds.
 #define SHOT_MOTOR_PIN         7
 #define SHOT_MOTOR_DURATION_MS 1330UL
+
+#define VISION_FRAME_WIDTH   1280
+#define VISION_FRAME_HEIGHT  720
+
+#define AUTO_HALF_WIDTH   (VISION_FRAME_WIDTH / 2.0f)
+#define AUTO_HALF_HEIGHT  (VISION_FRAME_HEIGHT / 2.0f)
+
+#define AUTO_PAN_MAX_RPM    100
+#define AUTO_TILT_MAX_RPM   100
+#define AUTO_MOTOR_MAX_RPM  100
+
+// 양수: 한 방향 / 음수: 반대 방향
+#define AUTO_SEARCH_RPM 20

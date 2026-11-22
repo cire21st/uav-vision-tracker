@@ -14,7 +14,7 @@ if pygame.joystick.get_count() > 0:
     print("Connected:", joystick.get_name())
 
 # Serial Communication
-ser = serial.Serial("COM9", 115200, write_timeout=0.2)
+ser = serial.Serial("COM7", 115200, write_timeout=0.2)
 time.sleep(3)
 
 screen = pygame.display.set_mode((500, 250))
