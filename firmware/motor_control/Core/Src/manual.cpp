@@ -43,8 +43,8 @@ bool manual_control(int x, int y) {
         rpm2 *= scale;
     }
 
-    bool m1 = motor_set_speed(0x01, roundf(rpm1));
-    bool m2 = motor_set_speed(0x02, roundf(rpm2));
+    bool m1 = motor_set_speed(MOTOR1_CAN_ID, roundf(rpm1));
+    bool m2 = motor_set_speed(MOTOR2_CAN_ID, roundf(rpm2));
 
     return m1 && m2;
 }

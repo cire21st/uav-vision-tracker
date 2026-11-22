@@ -30,12 +30,12 @@ int prev_y = 0;
 void request_stop() {
     armed = false;
     stop_pending = true;
-    last_stop_try = millis() - 50UL;
+    last_stop_try = millis() - STOP_RETRY_INTERVAL_MS;
 }
 
 // Stop Control
 void service_stop() {
-    if (stop_pending && millis() - last_stop_try >= 50) {
+    if (stop_pending && millis() - last_stop_try >= STOP_RETRY_INTERVAL_MS) {
         last_stop_try = millis();
         stop_pending = !motor_stop_all();
     }
@@ -164,7 +164,7 @@ void process_command(char* data) {
 
 // Serial Reception
 void serial_receive() {
-    static char buffer[32];
+    static char buffer[COMMAND_BUFFER_SIZE];
     static uint8_t index = 0;
     static bool overflow = false;
 
@@ -195,7 +195,7 @@ void serial_receive() {
 void setup() {
     shot_motor_init();
 
-    Serial.begin(115200);
+    Serial.begin(SERIAL_BAUD_RATE);
 
     if (!can_init()) {
         Serial.println("CAN Init Failed");
@@ -207,14 +207,14 @@ void setup() {
 
     Serial.println("CAN Init Success");
 
-    delay(2000);
+    delay(STARTUP_DELAY_MS);
 
     request_stop();
 }
 
 void loop() {
     // Communication Timeout
-    if (mode != IDLE && millis() - last_rx >= 300) {
+    if (mode != IDLE && millis() - last_rx >= CONTROL_TIMEOUT_MS) {
         set_mode(IDLE);
     }
     

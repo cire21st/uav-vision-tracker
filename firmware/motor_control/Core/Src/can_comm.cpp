@@ -11,7 +11,7 @@ MCP_CAN CAN(CAN_CS_PIN);
 bool can_init() {
     SPI.begin();
 
-    byte result = CAN.begin(MCP_ANY, CAN_500KBPS, CAN_OSC);
+    byte result = CAN.begin(MCP_ANY, CAN_BITRATE, CAN_OSC);
 
     Serial.print("CAN init result: ");
     Serial.println(result);
