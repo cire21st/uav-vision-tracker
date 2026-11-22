@@ -32,7 +32,7 @@ bool auto_control(int16_t dx, int16_t dy, int flag) {
     float uy = normalize(dy, AUTO_HALF_HEIGHT);
 
     // Linear Mapping
-    float pan = AUTO_PAN_MAX_RPM * ux;
+    float pan = -AUTO_PAN_MAX_RPM * ux;
     float tilt = AUTO_TILT_MAX_RPM * uy;
 
     // Motor Speed
