@@ -62,7 +62,7 @@ try:
                     running = False
 
                 elif event.key == pygame.K_SPACE:
-                    if mode == "PC" and pygame.key.get_focused():
+                    if mode in ("PC", "AUTO") and pygame.key.get_focused():
                         shot_requested = True
 
             elif event.type == pygame.JOYBUTTONDOWN:
@@ -127,7 +127,7 @@ try:
         # Serial Transmission
         ser.write(f"{data}\n".encode())
 
-        if shot_requested and mode in ("PC", "MANUAL"):
+        if shot_requested and mode in ("PC", "MANUAL", "AUTO"):
             ser.write(b"X\n")
 
         # Show Arduino mode changes and CAN results without blocking pygame.

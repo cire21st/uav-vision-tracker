@@ -20,7 +20,7 @@ static float normalize(int16_t error, float half_size) {
 bool auto_control(int16_t dx, int16_t dy, int flag) {
     // 미탐지: PAN만 한 방향으로 계속 회전
     if (flag == 0) {
-        return motor_pan(AUTO_SEARCH_RPM);
+        if (disable_option) return motor_pan(AUTO_SEARCH_RPM);
     }
 
     if (flag != 1) {
