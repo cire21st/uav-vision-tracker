@@ -60,4 +60,4 @@
 // 양수: 한 방향 / 음수: 반대 방향
 #define AUTO_SEARCH_RPM 20
 
-#define disable_option 0
+#define disable_option 1
