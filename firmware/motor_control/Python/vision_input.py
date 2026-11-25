@@ -9,7 +9,7 @@ import time
 
 
 VISION_DIR = Path("C:/comet/uav-tracker-test")
-VISION_CAMERA = 2
+VISION_CAMERA = 1
 
 
 class VisionInput:

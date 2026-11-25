@@ -81,6 +81,8 @@ void handle_command(ControlMode new_mode, int x, int y, int flag = 1) {
     if (mode == AUTO) {
         if (!auto_control(int16_t(x), int16_t(y), flag)) {
             request_stop();
+        } else {
+            armed = true;
         }
         return;
     }
@@ -186,7 +188,7 @@ void process_command(char* data) {
     }
 
     else if (strcmp(data, "X") == 0) {
-        if ((mode == PC || mode == MANUAL) && armed && !stop_pending) {
+        if ((mode == PC || mode == MANUAL || mode == AUTO) && armed && !stop_pending) {
             shot_motor_trigger();
         }
     }
